@@ -23,6 +23,8 @@ padrao_linha = re.compile(
     r"(BOVESPA)\s+(C|V)\s+(VISTA|FRACIONARIO|TERMO)\s+(.*?)\s+(\d+)\s+R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)\s+(D|C)"
 )
 
+padrao_data = re.compile(r"Data Pregão\s+(\d{2}/\d{2}/\d{4})")
+
 # Lista para acumular os dados de TODAS as páginas
 todos_os_dados = []
 
@@ -40,9 +42,14 @@ with open(pdf_path, "rb") as f:
         # Extrai o texto da página atual
         texto_pagina = pagina.extract_text()
         
-        # Procura o padrão Regex no texto desta página
-        linhas_encontradas = padrao_linha.findall(texto_pagina)
+        # Procura a data do pregão nesta página. 
+        # Se não achar na página atual, tenta manter a da página anterior (caso seja uma continuação)
+        busca_data = padrao_data.search(texto_pagina)
+        data_pregao = busca_data.group(1) if busca_data else "Não encontrada"
         
+        # Procura as linhas de operações
+        linhas_encontradas = padrao_linha.findall(texto_pagina)
+
         # Se encontrou linhas nesta página, processa e adiciona à lista geral
         for item in linhas_encontradas:
             mercado = item[0]
@@ -57,6 +64,7 @@ with open(pdf_path, "rb") as f:
             
             todos_os_dados.append(
                 [
+                    data_pregao,
                     mercado,
                     cv,
                     tipo,
@@ -73,6 +81,7 @@ with open(pdf_path, "rb") as f:
 if todos_os_dados:
     # Nomes exatos das colunas desejadas
     colunas = [
+        "Data Pregao",
         "Mercado", 
         "C/V",
         "Tipo de Mercado",
